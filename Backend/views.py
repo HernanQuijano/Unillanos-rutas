@@ -12,7 +12,7 @@ class ParadaResource(Resource):
     parser.add_argument('latitud', type=float, required=True, help='Latitud de la parada es requerido')
     parser.add_argument('longitud', type=float, required=True, help='Longitud de la parada es requerido')
 
-    #@jwt_required()
+    @jwt_required()
     def get(self, id):
         parada = Parada.query.filter_by(id=id).first()
         if parada:
@@ -20,7 +20,7 @@ class ParadaResource(Resource):
         else:
             return {'message': 'Parada no encontrada'}, 404
 
-    #@jwt_required()
+    @jwt_required()
     def post(self):
         data = ParadaResource.parser.parse_args()
         parada = Parada(nombre=data['nombre'], latitud=data['latitud'], longitud=data['longitud'])
@@ -34,7 +34,7 @@ class BusResource(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('placa', type=str, required=True, help='Placa del bus es requerida')
 
-    #@jwt_required()
+    @jwt_required()
     def get(self, id):
         bus = Bus.query.filter_by(id=id).first()
         if bus:
@@ -42,7 +42,7 @@ class BusResource(Resource):
         else:
             return {'message': 'Bus no encontrado'}, 404
 
-    #@jwt_required()
+    @jwt_required()
     def post(self):
         data = BusResource.parser.parse_args()
         bus = Bus(placa=data['placa'])
@@ -56,7 +56,7 @@ class HoraResource(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('hora', type=str, required=True, help='Hora es requerida')
 
-    #@jwt_required()
+    @jwt_required()
     def get(self, id):
         hora = Hora.query.filter_by(id=id).first()
         if hora:
@@ -64,7 +64,7 @@ class HoraResource(Resource):
         else:
             return {'message': 'Hora no encontrada'}, 404
 
-    #@jwt_required()
+    @jwt_required()
     def post(self):
         data = HoraResource.parser.parse_args()
         hora = Hora(hora=data['hora'])
@@ -81,7 +81,7 @@ class RutaResource(Resource):
     parser.add_argument('bus_id', type=int, required=True, help='ID del bus es requerido')
     parser.add_argument('hora_id', type=int, required=True, help='ID de la hora es requerido')
 
-    #@jwt_required()
+    @jwt_required()
     def get(self, id):
         ruta = Ruta.query.filter_by(id=id).first()
         if ruta:
@@ -89,7 +89,7 @@ class RutaResource(Resource):
         else:
             return {'message': 'Ruta no encontrada'}, 404
 
-    #@jwt_required()
+    @jwt_required()
     def post(self):
         data = RutaResource.parser.parse_args()
         ruta = Ruta(nombre=data['nombre'], parada_id=data['parada_id'], bus_id=data['bus_id'], hora_id=data['hora_id'])
@@ -105,7 +105,7 @@ class UsuarioResource(Resource):
     parser.add_argument('contraseña', type=int, required=True, help='Contraseña del usuario es requerido')
     parser.add_argument('tipo', type=int, required=True, help='TIPO de usuario es requerido')
 
-    #@jwt_required()
+    @jwt_required()
     def get(self, id):
         usuario = Usuario.query.filter_by(id=id).first()
         if usuario:
@@ -113,7 +113,7 @@ class UsuarioResource(Resource):
         else:
             return {'message': 'Usuario no encontrado'}, 404
 
-    #@jwt_required()
+    @jwt_required()
     def post(self):
         data = RutaResource.parser.parse_args()
         usuario = Ruta(usuario=data['usuario'], contraseña=data['contraseña'], tipo=data['tipo'])
@@ -124,7 +124,7 @@ class UsuarioResource(Resource):
 
 # Funcion para valores de parada
 @app.route('/horasiguiente', methods=['POST'])
-#@jwt_required()
+@jwt_required()
 def Horasiguiente():
     id = request.json.get('id', None)
     hora = request.json.get('hora', None)
@@ -159,19 +159,29 @@ def Horasiguiente():
         return {'message': 'Parada no encontrada'}, 404
 
 @app.route('/rutaproxima', methods=['POST'])
-#@jwt_required()
+@jwt_required()
 def Rutaproxima():
     hora = request.json.get('hora', None)
     hora = datetime.strptime(hora, '%H:%M:%S').time()
     rutas = Ruta.query.all()
     hora_minima=None
     rutafin = None
+    horita = None
     for ruta in rutas:
         actualhora = Hora.query.filter_by(id=ruta.hora_id).first()
         if actualhora.hora >= hora:
             if hora_minima is None or hora_minima >= actualhora.hora:
                 hora_minima=actualhora.hora
                 rutafin=ruta
+
+        if actualhora.hora <= hora:
+            if horita is None or horita>= actualhora.hora:
+                hora_minima=actualhora.hora
+                ultimaruta=ruta
+
+    if rutafin is None:
+            rutafin = ultimaruta
+
     rutas_finales = Ruta.query.filter_by(hora_id=rutafin.hora_id).all()
     rutas_json = [{'paradas':Parada.query.filter_by(id=ruta_final.parada_id).first().nombre,
                    'bus':Bus.query.filter_by(id=ruta_final.bus_id).first().placa,
@@ -181,3 +191,14 @@ def Rutaproxima():
                    } for ruta_final in rutas_finales]
     return jsonify(rutas_json)
 
+
+@app.route('/llamarparadas')
+@jwt_required()
+def llamarparadas():
+    paradas = Parada.query.all()
+    paradas_json = [{'nombre':parada.nombre,
+                   'longitud':parada.longitud,
+                   'latitud':parada.latitud
+                   } for parada in paradas]
+    
+    return(paradas_json)

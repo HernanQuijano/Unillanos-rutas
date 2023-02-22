@@ -17,7 +17,9 @@ const LoginForm = () => {
   const handleLogin = async (event) => {
     event.preventDefault();
     try {
-      const response = await axios.post('/login', { usuario, contraseña });
+      const response = await axios.post('/admin', { data:{
+        usuario:'usuario',
+        contraseña:'contraseña' }});
       const { access_token } = response.data;
       localStorage.setItem('access_token', access_token);
       setError('');

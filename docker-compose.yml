@@ -7,13 +7,21 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
     env_file:
-      - ./.envs/.postgres
+      - ./Backend/.envs/.postgres
     ports:
       - "5432:5432"
 
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    container_name: frontend-app
+    ports:
+      - "3000:3000"
+
   app:
     build:
-      context: .
+      context: ./Backend
       dockerfile: Dockerfile
     container_name: webapp
     environment:
